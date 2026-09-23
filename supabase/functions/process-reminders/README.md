@@ -1,15 +1,17 @@
-# PesanLunas — Edge Function Auto Reminder
+# process-reminders
 
-Fungsi `process-reminders` hanya mengirim WhatsApp otomatis bila:
+Edge Function untuk memproses reminder WhatsApp otomatis PesanLunas.
 
-1. `business_settings.whatsapp_provider` = `fonnte` atau `starsender`.
-2. `business_settings.auto_reminder.enabled` = `true`.
-3. Nomor WhatsApp pelanggan tersedia.
-4. Invoice masih `unpaid` / `partial`.
-5. Hari ini tepat H-1, hari H, atau terlambat 1/3/7 hari.
-6. Event untuk invoice tersebut belum pernah diproses (idempotency key).
+## Konfigurasi
 
-Tanpa gateway, reminder di Dashboard/Piutang tetap tampil dan tombol WhatsApp manual tetap dapat digunakan. Edge Function tidak mengirim apa pun bila provider `manual`.
+1. Di PesanLunas buka **Integrasi WhatsApp**.
+2. Pilih **Fonnte** atau **Starsender**.
+3. Masukkan Token/API Key langsung di halaman tersebut.
+4. Aktifkan **Auto kirim reminder WhatsApp**.
+5. Deploy function ini sebagai `process-reminders`.
+6. Untuk pemanggilan scheduler, tetap gunakan `REMINDER_CRON_SECRET` pada Supabase Edge Function dan Vercel.
+
+Token provider tidak lagi perlu dimasukkan ke Vercel Environment Variables atau Supabase Secrets. Token disimpan di tabel `whatsapp_integrations` dengan RLS Owner-only dan dibaca server-side oleh aplikasi/Edge Function.
 
 ## Deploy
 
@@ -17,28 +19,4 @@ Tanpa gateway, reminder di Dashboard/Piutang tetap tampil dan tombol WhatsApp ma
 supabase functions deploy process-reminders --no-verify-jwt
 ```
 
-Set secrets yang diperlukan:
-
-```bash
-supabase secrets set REMINDER_CRON_SECRET="GANTI_DENGAN_STRING_PANJANG_RANDOM"
-supabase secrets set FONNTE_TOKEN="TOKEN_FONNTE"            # jika memakai Fonnte
-supabase secrets set STARSENDER_API_KEY="KEY_STARSENDER"    # jika memakai Starsender
-```
-
-`SUPABASE_URL` dan `SUPABASE_SERVICE_ROLE_KEY` tersedia di environment Edge Function project Supabase.
-
-## Scheduler
-
-Jadwalkan pemanggilan function minimal 1x per hari. Karena setiap bisnis mempunyai timezone sendiri, rekomendasi praktis adalah menjalankannya tiap jam. Function hanya akan mengirim ketika tanggal lokal bisnis cocok dengan event reminder dan idempotency mencegah pengiriman ganda.
-
-Request scheduler harus membawa header:
-
-```text
-x-cron-secret: <REMINDER_CRON_SECRET>
-```
-
-Endpoint function:
-
-```text
-https://<PROJECT_REF>.supabase.co/functions/v1/process-reminders
-```
+`REMINDER_CRON_SECRET` tetap wajib untuk endpoint scheduler karena function memvalidasi header `x-cron-secret` sendiri.

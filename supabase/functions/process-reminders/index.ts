@@ -83,10 +83,9 @@ function formatMessage(template: string, input: {
     .replaceAll("{business_name}", input.businessName);
 }
 
-async function sendGateway(provider: Provider, destination: string, message: string) {
+async function sendGateway(provider: Provider, token: string, destination: string, message: string) {
   if (provider === "fonnte") {
-    const token = Deno.env.get("FONNTE_TOKEN")?.trim();
-    if (!token) throw new Error("FONNTE_TOKEN belum diset pada Supabase Edge Function secrets");
+    if (!token) throw new Error("Token Fonnte belum disimpan di menu Integrasi WhatsApp");
     const form = new FormData();
     form.set("target", destination);
     form.set("message", message);
@@ -106,8 +105,7 @@ async function sendGateway(provider: Provider, destination: string, message: str
   }
 
   if (provider === "starsender") {
-    const token = Deno.env.get("STARSENDER_API_KEY")?.trim();
-    if (!token) throw new Error("STARSENDER_API_KEY belum diset pada Supabase Edge Function secrets");
+    if (!token) throw new Error("API Key Starsender belum disimpan di menu Integrasi WhatsApp");
     const response = await fetch("https://api.starsender.online/api/send", {
       method: "POST",
       headers: { Authorization: token, "Content-Type": "application/json" },
@@ -166,7 +164,7 @@ Deno.serve(async (request) => {
 
   if (enabledBusinessIds.length === 0) return json({ ok: true, processed: 0, sent: 0, skipped: 0, failed: 0, note: "Tidak ada bisnis dengan auto reminder + gateway aktif." });
 
-  const [{ data: businesses, error: businessError }, { data: invoices, error: invoiceError }, { data: templates, error: templateError }] = await Promise.all([
+  const [{ data: businesses, error: businessError }, { data: invoices, error: invoiceError }, { data: templates, error: templateError }, { data: integrations, error: integrationError }] = await Promise.all([
     supabase.from("businesses").select("id,name,timezone").in("id", enabledBusinessIds).eq("is_active", true).is("deleted_at", null),
     supabase.from("invoices")
       .select("id,business_id,order_id,customer_id,invoice_number,due_date,balance_due,payment_status,customers(name,whatsapp)")
@@ -175,13 +173,22 @@ Deno.serve(async (request) => {
       .not("due_date", "is", null)
       .is("deleted_at", null),
     supabase.from("message_templates").select("business_id,event_key,body,is_active").in("business_id", enabledBusinessIds).eq("is_active", true),
+    supabase.from("whatsapp_integrations").select("business_id,provider,api_token").in("business_id", enabledBusinessIds),
   ]);
 
   if (businessError) return json({ error: businessError.message }, 500);
   if (invoiceError) return json({ error: invoiceError.message }, 500);
   if (templateError) return json({ error: templateError.message }, 500);
+  if (integrationError) return json({ error: integrationError.message }, 500);
 
   const businessMap = new Map((businesses ?? []).map((b) => [b.id, b]));
+  const integrationMap = new Map<string, { provider: Provider; token: string }>();
+  for (const row of integrations ?? []) {
+    const p = String(row.provider ?? "manual");
+    const provider = p === "fonnte" || p === "starsender" ? p as Provider : "manual" as Provider;
+    integrationMap.set(row.business_id, { provider, token: String(row.api_token ?? "").trim() });
+  }
+
   const templateMap = new Map<string, string>();
   for (const row of templates ?? []) {
     templateMap.set(`${row.business_id}:${row.event_key}`, row.body);
@@ -198,7 +205,13 @@ Deno.serve(async (request) => {
     const business = businessMap.get(invoice.business_id);
     if (!business || !invoice.due_date) { skipped++; continue; }
     const setting = settingsByBusiness.get(invoice.business_id);
+    const integration = integrationMap.get(invoice.business_id);
     if (!setting || !setting.auto || setting.provider === "manual") { skipped++; continue; }
+    if (!integration || integration.provider !== setting.provider || !integration.token) {
+      skipped++;
+      details.push({ invoice: invoice.invoice_number, status: "skip", reason: "Token gateway belum dikonfigurasi di menu Integrasi WhatsApp" });
+      continue;
+    }
 
     const today = localDate(business.timezone || "Asia/Jakarta");
     const offset = diffDays(today, invoice.due_date);
@@ -248,7 +261,7 @@ Deno.serve(async (request) => {
     }
 
     try {
-      const result = await sendGateway(setting.provider, destination, message);
+      const result = await sendGateway(setting.provider, integration.token, destination, message);
       await supabase.from("message_deliveries").update({
         status: result.ok ? "sent" : "failed",
         external_id: result.externalId,

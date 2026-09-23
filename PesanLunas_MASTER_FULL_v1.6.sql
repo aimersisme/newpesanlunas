@@ -3178,6 +3178,44 @@ grant execute on function public.get_business_invitation_preview(text) to anon, 
 -- Standalone receivable/payable records, independent from invoices/orders.
 -- ============================================================
 
+-- ============================================================
+-- WHATSAPP INTEGRATION CREDENTIALS
+-- ============================================================
+-- Provider credentials are stored in a private owner-only table.
+-- The browser never reads api_token directly; the server/Edge Function
+-- uses it when sending messages.
+create table if not exists public.whatsapp_integrations (
+  id uuid primary key default gen_random_uuid(),
+  business_id uuid not null unique references public.businesses(id) on delete cascade,
+  provider text not null default 'manual' check (provider in ('manual','fonnte','starsender')),
+  api_token text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  updated_by uuid references public.profiles(id) on delete set null
+);
+
+alter table public.whatsapp_integrations enable row level security;
+
+drop policy if exists whatsapp_integrations_owner_select on public.whatsapp_integrations;
+create policy whatsapp_integrations_owner_select on public.whatsapp_integrations
+for select to authenticated using (public.is_business_owner(business_id));
+drop policy if exists whatsapp_integrations_owner_insert on public.whatsapp_integrations;
+create policy whatsapp_integrations_owner_insert on public.whatsapp_integrations
+for insert to authenticated with check (public.is_business_owner(business_id));
+drop policy if exists whatsapp_integrations_owner_update on public.whatsapp_integrations;
+create policy whatsapp_integrations_owner_update on public.whatsapp_integrations
+for update to authenticated using (public.is_business_owner(business_id)) with check (public.is_business_owner(business_id));
+drop policy if exists whatsapp_integrations_owner_delete on public.whatsapp_integrations;
+create policy whatsapp_integrations_owner_delete on public.whatsapp_integrations
+for delete to authenticated using (public.is_business_owner(business_id));
+
+grant select, insert, update, delete on public.whatsapp_integrations to authenticated;
+drop trigger if exists trg_whatsapp_integrations_updated_at on public.whatsapp_integrations;
+create trigger trg_whatsapp_integrations_updated_at before update on public.whatsapp_integrations for each row execute function public.set_updated_at();
+
+-- ============================================================
+-- HUTANG & PIUTANG
+-- ============================================================
 create table if not exists public.debt_records (
   id uuid primary key default gen_random_uuid(),
   business_id uuid not null references public.businesses(id) on delete cascade,
@@ -3227,6 +3265,9 @@ drop policy if exists debt_records_insert_finance on public.debt_records;
 create policy debt_records_insert_finance on public.debt_records for insert to authenticated with check (public.has_business_role(business_id, array['owner'::public.member_role,'admin'::public.member_role,'finance'::public.member_role]));
 drop policy if exists debt_records_update_finance on public.debt_records;
 create policy debt_records_update_finance on public.debt_records for update to authenticated using (public.has_business_role(business_id, array['owner'::public.member_role,'admin'::public.member_role,'finance'::public.member_role])) with check (public.has_business_role(business_id, array['owner'::public.member_role,'admin'::public.member_role,'finance'::public.member_role]));
+
+grant select, insert, update on public.debt_records to authenticated;
+grant select on public.debt_payments to authenticated;
 
 drop policy if exists debt_payments_read_member on public.debt_payments;
 create policy debt_payments_read_member on public.debt_payments for select to authenticated using (public.is_business_member(business_id));
