@@ -7,6 +7,14 @@ export const metadata: Metadata = {
   title: "PesanLunas",
   description: "Pesanan tercatat, tagihan cepat lunas.",
   applicationName: "PesanLunas",
+  icons: {
+    icon: [
+      { url: "/icon.png", type: "image/png", sizes: "512x512" },
+    ],
+    apple: [
+      { url: "/apple-icon.png", type: "image/png", sizes: "512x512" },
+    ],
+  },
 };
 
 export const viewport: Viewport = {
