@@ -1,8 +1,9 @@
-# PesanLunas v0.2.10 — Single Install + Optional WhatsApp Auto Reminder
+# PesanLunas v0.2.11 — Single Install + Optional WhatsApp Auto Reminder
 
-Versi ini membawa seluruh fitur v0.2.7 Theme Engine, Quick Customer Order, Team Role Guide, Auto SKU, CRUD, performance/runtime fixes, lalu menambahkan personalisasi dashboard.
+Versi ini membawa seluruh fitur v0.2.7 Theme Engine, Quick Customer Order, Team Role Guide, Auto SKU, CRUD, performance/runtime fixes, lalu menambahkan personalisasi dashboard dan modul Hutang & Piutang standalone.
 
 ## Yang baru
+- Hutang & Piutang standalone dengan cicilan dan sisa saldo.
 
 ### Sapaan personal berdasarkan waktu
 Dashboard sekarang menampilkan nama akun yang sedang login:
@@ -49,7 +50,7 @@ Patch ini tidak membuat tabel/kolom baru. Patch hanya meng-upgrade `get_single_d
 6. Buka Dashboard beberapa kali untuk memastikan quote berganti secara acak.
 
 
-## v0.2.10 — Single Install + Reminder
+## v0.2.11 — Single Install + Reminder
 
 - Login publik tidak lagi menampilkan menu Daftar.
 - `/auth/register` hanya dapat dibuka dengan `OWNER_SETUP_KEY` untuk aktivasi Owner pertama.
@@ -80,3 +81,13 @@ supabase secrets set STARSENDER_API_KEY="KEY_STARSENDER"
 ```
 
 Scheduler tetap diperlukan untuk pengiriman otomatis tanpa membuka aplikasi. Jalankan Edge Function minimal 1x per hari; interval per jam lebih aman karena timezone setiap usaha dapat berbeda. Idempotency mencegah pengiriman event yang sama berulang.
+
+
+## v0.2.11 — Hutang & Piutang
+- Menu `Keuangan → Hutang & Piutang` melalui Lainnya.
+- Piutang dan hutang berdiri sendiri, tidak perlu customer/order/invoice.
+- Nominal awal, jatuh tempo, WhatsApp, referensi, catatan, status, sisa saldo.
+- Pembayaran/cicilan dengan RPC yang mengunci saldo untuk mencegah pembayaran melebihi sisa.
+- Search, filter jenis, pagination, detail riwayat pembayaran, dan tombol WhatsApp manual.
+- Hak kelola: Owner/Admin/Finance; anggota lain hanya membaca data.
+- Master schema fresh-install: `PesanLunas_MASTER_FULL_v1.6.sql`.

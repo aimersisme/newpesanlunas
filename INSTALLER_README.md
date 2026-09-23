@@ -1,4 +1,4 @@
-# PesanLunas v0.2.10 — FULL CLIENT INSTALLER
+# PesanLunas v0.2.11 — FULL CLIENT INSTALLER
 
 ## Fresh Client / Single Install
 
@@ -14,9 +14,15 @@ Architecture:
 
 Create a new Supabase project and run:
 
-`supabase/PesanLunas_MASTER_FULL_v1.5.sql`
+`supabase/PesanLunas_MASTER_FULL_v1.6.sql`
 
 Run it once on a fresh project.
+
+## 3. Upgrade from v0.2.10
+
+If you already run PesanLunas v0.2.10, do NOT rerun the full master schema. Run `PesanLunas_v0.2.11_HUTANG_PIUTANG_PATCH.sql` once in the existing Supabase project.
+
+The fresh-install master already includes the same module as `supabase/PesanLunas_MASTER_FULL_v1.6.sql`.
 
 ## 2. Vercel environment variables
 
