@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
+type WhatsappIntegration = {
+  provider: string | null;
+  api_token: string | null;
+};
+
 type SendPayload = {
   businessId?: string;
   destination?: string;
@@ -62,10 +67,11 @@ export async function POST(request: Request) {
   // the signed-in user's active membership. This keeps provider tokens out
   // of the browser and removes the need for SUPABASE_SERVICE_ROLE_KEY just
   // to send a WhatsApp message.
-  const { data: integration, error: integrationError } = await supabase
+  const { data: integrationRaw, error: integrationError } = await supabase
     .rpc("get_whatsapp_integration_for_member", { p_business_id: businessId })
     .maybeSingle();
   if (integrationError) return NextResponse.json({ error: integrationError.message }, { status: 500 });
+  const integration = integrationRaw as WhatsappIntegration | null;
   const configuredToken = String(integration?.api_token ?? "").trim();
   if (integration?.provider && String(integration.provider) !== provider) {
     return NextResponse.json({ error: "Provider WhatsApp belum sinkron. Buka Integrasi WhatsApp lalu Simpan Pengaturan." }, { status: 409 });
