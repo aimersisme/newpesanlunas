@@ -1,0 +1,1 @@
+import { AppShell } from "@/components/app-shell";import { PaymentMethodsManager } from "@/components/modules/payment-methods-manager";import { getActiveBusiness } from "@/lib/business";export const dynamic="force-dynamic";export default async function Page(){const b=await getActiveBusiness();return <AppShell><PaymentMethodsManager businessId={b.id} role={b.role}/></AppShell>}

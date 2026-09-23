@@ -1,0 +1,1 @@
+import { AppShell } from "@/components/app-shell";import { OrderCreateForm } from "@/components/modules/order-create-form";import { getActiveBusiness } from "@/lib/business";export const dynamic="force-dynamic";export default async function Page(){const b=await getActiveBusiness();return <AppShell><OrderCreateForm businessId={b.id} role={b.role}/></AppShell>}

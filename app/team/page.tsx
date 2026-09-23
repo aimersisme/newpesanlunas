@@ -1,0 +1,1 @@
+import { AppShell } from "@/components/app-shell";import { TeamManager } from "@/components/modules/team-manager";import { getActiveBusiness } from "@/lib/business";export const dynamic="force-dynamic";export default async function Page(){const b=await getActiveBusiness();return <AppShell><TeamManager businessId={b.id} role={b.role}/></AppShell>}

@@ -1,0 +1,1 @@
+import { AppShell } from "@/components/app-shell";import { CustomFieldsManager } from "@/components/modules/custom-fields-manager";import { getActiveBusiness } from "@/lib/business";export const dynamic="force-dynamic";export default async function Page(){const b=await getActiveBusiness();return <AppShell><CustomFieldsManager businessId={b.id} role={b.role}/></AppShell>}

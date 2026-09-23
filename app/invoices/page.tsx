@@ -1,0 +1,1 @@
+import { AppShell } from "@/components/app-shell";import { InvoicesManager } from "@/components/modules/invoices-manager";import { getActiveBusiness } from "@/lib/business";export const dynamic="force-dynamic";export default async function Page(){const b=await getActiveBusiness();return <AppShell><InvoicesManager businessId={b.id}/></AppShell>}
