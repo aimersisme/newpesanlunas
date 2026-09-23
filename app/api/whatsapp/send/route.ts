@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 type SendPayload = {
   businessId?: string;
@@ -57,6 +58,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, provider: "manual", manualUrl });
   }
 
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (!supabaseUrl || !serviceRoleKey) {
+    return NextResponse.json({ error: "SUPABASE_SERVICE_ROLE_KEY belum diatur di Vercel Environment Variables." }, { status: 503 });
+  }
+  const admin = createSupabaseClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { data: integration, error: integrationError } = await admin
+    .from("whatsapp_integrations")
+    .select("provider,api_token")
+    .eq("business_id", businessId)
+    .maybeSingle();
+  if (integrationError) return NextResponse.json({ error: integrationError.message }, { status: 500 });
+  const configuredToken = String(integration?.api_token ?? "").trim();
+  if (integration?.provider && String(integration.provider) !== provider) {
+    return NextResponse.json({ error: "Provider WhatsApp belum sinkron. Buka Integrasi WhatsApp lalu Simpan Pengaturan." }, { status: 409 });
+  }
+
   let ok = false;
   let externalId: string | null = null;
   let errorMessage: string | null = null;
@@ -64,8 +82,8 @@ export async function POST(request: Request) {
 
   try {
     if (provider === "fonnte") {
-      const token = process.env.FONNTE_TOKEN;
-      if (!token) throw new Error("FONNTE_TOKEN belum diisi di Vercel Environment Variables");
+      const token = configuredToken;
+      if (!token) throw new Error("Token Fonnte belum diisi di menu Integrasi WhatsApp.");
       const form = new FormData();
       form.set("target", destination);
       form.set("message", message);
@@ -83,8 +101,8 @@ export async function POST(request: Request) {
       externalId = String(parsed.id ?? parsed.detail ?? "") || null;
       if (!ok) errorMessage = String(parsed.reason ?? parsed.message ?? `Fonnte HTTP ${response.status}`);
     } else if (provider === "starsender") {
-      const token = process.env.STARSENDER_API_KEY;
-      if (!token) throw new Error("STARSENDER_API_KEY belum diisi di Vercel Environment Variables");
+      const token = configuredToken;
+      if (!token) throw new Error("API Key Starsender belum diisi di menu Integrasi WhatsApp.");
       const response = await fetch("https://api.starsender.online/api/send", {
         method: "POST",
         headers: { Authorization: token, "Content-Type": "application/json" },
