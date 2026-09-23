@@ -3259,3 +3259,49 @@ end;
 $$;
 
 grant execute on function public.record_debt_payment(uuid,bigint,date,text) to authenticated;
+
+
+-- PesanLunas v0.2.11-r2 — WhatsApp integration credentials
+create table if not exists public.whatsapp_integrations (
+  id uuid primary key default gen_random_uuid(),
+  business_id uuid not null unique references public.businesses(id) on delete cascade,
+  provider text not null default 'manual' check (provider in ('manual','fonnte','starsender')),
+  api_token text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  updated_by uuid references public.profiles(id) on delete set null
+);
+
+alter table public.whatsapp_integrations enable row level security;
+drop policy if exists whatsapp_integrations_owner_select on public.whatsapp_integrations;
+create policy whatsapp_integrations_owner_select on public.whatsapp_integrations for select to authenticated using (public.is_business_owner(business_id));
+drop policy if exists whatsapp_integrations_owner_insert on public.whatsapp_integrations;
+create policy whatsapp_integrations_owner_insert on public.whatsapp_integrations for insert to authenticated with check (public.is_business_owner(business_id));
+drop policy if exists whatsapp_integrations_owner_update on public.whatsapp_integrations;
+create policy whatsapp_integrations_owner_update on public.whatsapp_integrations for update to authenticated using (public.is_business_owner(business_id)) with check (public.is_business_owner(business_id));
+drop policy if exists whatsapp_integrations_owner_delete on public.whatsapp_integrations;
+create policy whatsapp_integrations_owner_delete on public.whatsapp_integrations for delete to authenticated using (public.is_business_owner(business_id));
+grant select, insert, update, delete on public.whatsapp_integrations to authenticated;
+
+drop trigger if exists trg_whatsapp_integrations_updated_at on public.whatsapp_integrations;
+create trigger trg_whatsapp_integrations_updated_at before update on public.whatsapp_integrations for each row execute function public.set_updated_at();
+
+create or replace function public.get_whatsapp_integration_for_member(p_business_id uuid)
+returns table (provider text, api_token text)
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not exists (select 1 from public.business_members bm where bm.business_id=p_business_id and bm.user_id=auth.uid() and bm.status='active') then
+    raise exception 'Forbidden';
+  end if;
+  return query select wi.provider, wi.api_token from public.whatsapp_integrations wi where wi.business_id=p_business_id limit 1;
+end;
+$$;
+revoke all on function public.get_whatsapp_integration_for_member(uuid) from public;
+grant execute on function public.get_whatsapp_integration_for_member(uuid) to authenticated;
+
+-- Required table privileges for the Hutang & Piutang UI.
+grant select, insert, update on public.debt_records to authenticated;
+grant select on public.debt_payments to authenticated;
