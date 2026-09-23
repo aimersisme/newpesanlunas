@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 type SendPayload = {
   businessId?: string;
@@ -58,16 +57,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, provider: "manual", manualUrl });
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-  if (!supabaseUrl || !serviceRoleKey) {
-    return NextResponse.json({ error: "SUPABASE_SERVICE_ROLE_KEY belum diatur di Vercel Environment Variables." }, { status: 503 });
-  }
-  const admin = createSupabaseClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
-  const { data: integration, error: integrationError } = await admin
-    .from("whatsapp_integrations")
-    .select("provider,api_token")
-    .eq("business_id", businessId)
+  // Provider credentials are stored in the business-owned Supabase row.
+  // The server route reads them through a SECURITY DEFINER RPC that checks
+  // the signed-in user's active membership. This keeps provider tokens out
+  // of the browser and removes the need for SUPABASE_SERVICE_ROLE_KEY just
+  // to send a WhatsApp message.
+  const { data: integration, error: integrationError } = await supabase
+    .rpc("get_whatsapp_integration_for_member", { p_business_id: businessId })
     .maybeSingle();
   if (integrationError) return NextResponse.json({ error: integrationError.message }, { status: 500 });
   const configuredToken = String(integration?.api_token ?? "").trim();
