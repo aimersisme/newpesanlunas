@@ -1,6 +1,6 @@
 {
   "name": "pesanlunas",
-  "version": "0.2.11-r4",
+  "version": "0.2.11-r5",
   "private": true,
   "scripts": {
     "dev": "next dev",

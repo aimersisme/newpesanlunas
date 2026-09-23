@@ -1,4 +1,4 @@
-# PesanLunas v0.2.11-r4 — FULL CLIENT INSTALLER
+# PesanLunas v0.2.11-r5 — FULL CLIENT INSTALLER
 
 ## Fresh Client / Single Install
 
@@ -20,7 +20,7 @@ Run it once on a fresh project.
 
 ## 3. Upgrade from v0.2.10
 
-If you already run PesanLunas v0.2.10, do NOT rerun the full master schema. Run `PesanLunas_v0.2.11-r4_HUTANG_PIUTANG_PATCH.sql` once in the existing Supabase project.
+If you already run PesanLunas v0.2.10, do NOT rerun the full master schema. Run `PesanLunas_v0.2.11-r5_HUTANG_PIUTANG_PATCH.sql` once in the existing Supabase project.
 
 The fresh-install master already includes the same module as `supabase/PesanLunas_MASTER_FULL_v1.6.sql`.
 
@@ -74,5 +74,5 @@ The first Owner is activated through the protected Owner setup flow. Additional 
 Token Fonnte / API Key Starsender sekarang diisi langsung dari menu **Integrasi WhatsApp**. Tidak perlu menaruh token provider di Vercel Environment Variables atau Supabase Secrets. `REMINDER_CRON_SECRET` tetap digunakan untuk scheduler reminder.
 
 
-### WhatsApp v0.2.11-r4
+### WhatsApp v0.2.11-r5
 Normal WhatsApp sends use the signed-in Supabase session and a protected RPC to read the business provider credential. `SUPABASE_SERVICE_ROLE_KEY` is not required for normal WhatsApp sends; keep it only for server/background tasks such as scheduled reminders.
